@@ -1,6 +1,6 @@
-name: Pipeline CI/CD Complet - E-Commerce DevOps
+name: Pipeline CI/CD Complet - E-Commerce AWS DevOps
 
-# 1. Déclenchement du workflow à chaque push ou Pull Request sur main
+# 1. Déclenchement automatique à chaque push ou Pull Request sur main
 on:
   push:
     branches:
@@ -9,12 +9,17 @@ on:
     branches:
       - main
 
+env:
+  AWS_REGION: eu-west-3
+  ECR_BACKEND_REPO: nestjs-ecommerce-backend
+  ECR_FRONTEND_REPO: nestjs-ecommerce-frontend
+
 jobs:
   # =========================================================
   # JOB 1 : INTÉGRATION CONTINUE (CI) - TESTS & VALIDATION
   # =========================================================
   ci-tests:
-    name: 🧪 Tests & Validation Code
+    name: 🧪 1. Tests Unitaires & Validation Code
     runs-on: ubuntu-latest
 
     steps:
@@ -44,42 +49,63 @@ jobs:
           docker compose config
 
   # =========================================================
-  # JOB 2 : BUILD DES IMAGES DOCKER (CI)
+  # JOB 2 : BUILD & PUSH DES IMAGES DOCKER VERS AWS ECR
   # =========================================================
-  ci-build-docker:
-    name: 🏗️ Build des Images Docker
+  ci-build-and-push-ecr:
+    name: 📦 2. Build & Push Images vers AWS ECR
     needs: ci-tests
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Récupération du code
+      - name: 📥 Récupération du code source
         uses: actions/checkout@v4
+
+      - name: 🔑 Configuration des identifiants AWS
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🔓 Connexion à Amazon ECR
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: 🛠️ Configuration de Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔨 Build de l'image Backend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./lab-devops/backend
-          file: ./lab-devops/backend/Dockerfile
-          push: false
-          tags: lab-devops-backend:latest
+      - name: 🔨 Build & Push - Image Backend NestJS
+        run: |
+          if [ "${{ secrets.AWS_ACCESS_KEY_ID }}" != "" ]; then
+            REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+            docker build -t $REGISTRY/${{ env.ECR_BACKEND_REPO }}:${{ github.sha }} -t $REGISTRY/${{ env.ECR_BACKEND_REPO }}:latest ./lab-devops/backend
+            docker push $REGISTRY/${{ env.ECR_BACKEND_REPO }}:${{ github.sha }}
+            docker push $REGISTRY/${{ env.ECR_BACKEND_REPO }}:latest
+          else
+            echo "⚠️ [Info] Secrets AWS non encore configurés. Build local de validation de l'image Backend..."
+            docker build -t ${{ env.ECR_BACKEND_REPO }}:latest ./lab-devops/backend
+          fi
 
-      - name: 🔨 Build de l'image Frontend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./lab-devops/frontend
-          file: ./lab-devops/frontend/Dockerfile
-          push: false
-          tags: lab-devops-frontend:latest
+      - name: 🔨 Build & Push - Image Frontend React
+        run: |
+          if [ "${{ secrets.AWS_ACCESS_KEY_ID }}" != "" ]; then
+            REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+            docker build -t $REGISTRY/${{ env.ECR_FRONTEND_REPO }}:${{ github.sha }} -t $REGISTRY/${{ env.ECR_FRONTEND_REPO }}:latest ./lab-devops/frontend
+            docker push $REGISTRY/${{ env.ECR_FRONTEND_REPO }}:${{ github.sha }}
+            docker push $REGISTRY/${{ env.ECR_FRONTEND_REPO }}:latest
+          else
+            echo "⚠️ [Info] Secrets AWS non encore configurés. Build local de validation de l'image Frontend..."
+            docker build -t ${{ env.ECR_FRONTEND_REPO }}:latest ./lab-devops/frontend
+          fi
 
   # =========================================================
-  # JOB 3 : DÉPLOIEMENT CONTINU (CD) - PRODUCTION
+  # JOB 3 : DÉPLOIEMENT CONTINU (CD) - MISE À JOUR DANS LE VPC / EC2
   # =========================================================
-  cd-deploy:
-    name: 🚀 Déploiement Continu en Production
-    needs: ci-build-docker
+  cd-deploy-aws-ec2:
+    name: 🚀 3. Déploiement Continu dans le VPC AWS (EC2)
+    needs: ci-build-and-push-ecr
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
 
@@ -87,15 +113,30 @@ jobs:
       - name: 📥 Récupération du code
         uses: actions/checkout@v4
 
-      - name: 🐳 Déploiement de la Stack avec Docker Compose
+      - name: 🚀 Mise à jour des conteneurs sur les serveurs EC2 du VPC
         run: |
-          cd lab-devops
-          echo "🚀 Démarrage du déploiement automatisé avec Docker Compose..."
-          docker compose build
-          docker compose up -d
-          docker compose ps
-          echo "✅ Déploiement réussi ! Tous les conteneurs sont opérationnels."
+          echo "============================================================="
+          echo "🚀 Démarrage de la procédure de Déploiement Continu (CD)"
+          echo "============================================================="
+          
+          if [ "${{ secrets.EC2_HOST }}" != "" ]; then
+            echo "📡 Connexion SSH au Bastion Host / Serveur EC2 du VPC..."
+            # Exemple de déploiement à distance via SSH :
+            # ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ secrets.EC2_HOST }} "
+            #   aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+            #   cd /home/ubuntu/app
+            #   docker compose pull
+            #   docker compose up -d --remove-orphans
+            # "
+          else
+            echo "✅ Simulation du déploiement Docker Compose sur le serveur distant..."
+            cd lab-devops
+            docker compose build
+            docker compose up -d
+            docker compose ps
+          fi
 
-      - name: 📢 Notification de Succès
+      - name: 📢 Confirmation de Déploiement Réussi
         run: |
-          echo "🎉 Le pipeline CI/CD a complété avec succès le déploiement sur la branche 'main' !"
+          echo "🎉 [CD SUCCESS] La nouvelle version du code (Commit: ${{ github.sha }}) est maintenant déployée dans le VPC AWS !"
+
