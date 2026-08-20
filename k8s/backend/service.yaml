@@ -1,13 +1,16 @@
+# Version de l'API Kubernetes
 apiVersion: v1
+# Type de ressource : Service (Exposition interne de l'API)
 kind: Service
 metadata:
+  # Nom DNS interne : backend-service:3001
   name: backend-service
   namespace: lab-devops
 spec:
   selector:
-    app: backend
+    app: backend # Redirige vers les pods de l'API backend
   ports:
     - protocol: TCP
       port: 3001
       targetPort: 3001
-  type: ClusterIP
+  type: ClusterIP # Inaccessible en direct de l'extérieur, passe par l'Ingress

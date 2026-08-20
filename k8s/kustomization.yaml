@@ -1,6 +1,9 @@
+# Version de l'API Kustomize
 apiVersion: kustomize.config.k8s.io/v1beta1
+# Type de ressource : Kustomization (Permet de regrouper et déployer tous les manifestes en 1 commande)
 kind: Kustomization
 
+# Liste ordonnée de tous les fichiers YAML à appliquer ensemble
 resources:
   - namespace.yaml
   - postgres/secret.yaml

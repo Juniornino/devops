@@ -1,4 +1,6 @@
+# Version de l'API pour les déploiements
 apiVersion: apps/v1
+# Type de ressource : Deployment (Déploiement applicatif)
 kind: Deployment
 metadata:
   name: backend-deployment
@@ -6,6 +8,7 @@ metadata:
   labels:
     app: backend
 spec:
+  # 2 répliques pour assurer la Haute Disponibilité et le Load Balancing
   replicas: 2
   selector:
     matchLabels:
@@ -20,14 +23,16 @@ spec:
           image: node:20-alpine
           workingDir: /app
           ports:
-            - containerPort: 3001
+            - containerPort: 3001 # Port écouté par l'API Express
+          # Connexion à la base de données via le nom DNS du Service K8s
           env:
             - name: DATABASE_URL
               value: "postgres://postgres:secretpassword@db-service:5432/lab_ghislain"
+          # Quotas et limites de ressources CPU / RAM
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: "128Mi" # RAM minimale garantie
+              cpu: "100m"     # CPU minimal garanti (0.1 cœur)
             limits:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: "256Mi" # Plafond de RAM maximal
+              cpu: "250m"     # Plafond de CPU maximal (0.25 cœur)

@@ -1,15 +1,20 @@
+# Version de l'API Réseau Kubernetes
 apiVersion: networking.k8s.io/v1
+# Type de ressource : Ingress (Point d'entrée HTTP unique et Reverse Proxy)
 kind: Ingress
 metadata:
   name: app-ingress
   namespace: lab-devops
   annotations:
+    # Réécriture d'URL pour transmettre les requêtes correctement aux services
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
+  # Contrôleur Ingress Nginx utilisé
   ingressClassName: nginx
   rules:
     - http:
         paths:
+          # Règle 1 : Les requêtes commençant par /api vont vers le backend
           - path: /api(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -17,6 +22,7 @@ spec:
                 name: backend-service
                 port:
                   number: 3001
+          # Règle 2 : Toutes les autres requêtes ( / ) vont vers le frontend
           - path: /(.*)
             pathType: ImplementationSpecific
             backend:

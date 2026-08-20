@@ -1,15 +1,20 @@
+# Version de l'API pour les déploiements d'applications
 apiVersion: apps/v1
+# Type de ressource : Deployment (Gère les Pods, le redémarrage et la mise à jour)
 kind: Deployment
 metadata:
   name: postgres-deployment
   namespace: lab-devops
   labels:
-    app: postgres
+    app: postgres # Étiquette d'identification
 spec:
+  # Nombre d'instances (1 seule pour la DB afin d'éviter la corruption)
   replicas: 1
+  # Sélecteur pour connecter le Deployment aux Pods
   selector:
     matchLabels:
       app: postgres
+  # Modèle de Pod à fabriquer
   template:
     metadata:
       labels:
@@ -17,15 +22,19 @@ spec:
     spec:
       containers:
         - name: postgres
+          # Image officielle PostgreSQL 16
           image: postgres:16-alpine
           ports:
-            - containerPort: 5432
+            - containerPort: 5432 # Port d'écoute interne
+          # Injecte les variables d'environnement depuis notre Secret K8s
           envFrom:
             - secretRef:
                 name: postgres-secret
+          # Reconnecte le volume persistant au dossier de données de PostgreSQL
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
+      # Définition du volume relié au PVC
       volumes:
         - name: postgres-storage
           persistentVolumeClaim:

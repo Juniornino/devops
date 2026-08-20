@@ -1,4 +1,6 @@
+# Version de l'API pour les déploiements
 apiVersion: apps/v1
+# Type de ressource : Deployment
 kind: Deployment
 metadata:
   name: frontend-deployment
@@ -6,6 +8,7 @@ metadata:
   labels:
     app: frontend
 spec:
+  # 2 répliques pour la Haute Disponibilité
   replicas: 2
   selector:
     matchLabels:
@@ -19,7 +22,7 @@ spec:
         - name: frontend
           image: node:20-alpine
           ports:
-            - containerPort: 3000
+            - containerPort: 3000 # Port de l'application Web React
           resources:
             requests:
               memory: "128Mi"

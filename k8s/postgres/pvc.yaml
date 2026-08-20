@@ -1,11 +1,17 @@
+# Version de l'API Kubernetes
 apiVersion: v1
+# Type de ressource : PersistentVolumeClaim (Demande de réservation de disque dur)
 kind: PersistentVolumeClaim
 metadata:
+  # Nom de la réservation de stockage
   name: postgres-pvc
+  # Namespace cible
   namespace: lab-devops
 spec:
+  # Mode d'accès : ReadWriteOnce (Lu et écrit par un seul nœud à la fois)
   accessModes:
     - ReadWriteOnce
+  # Taille du disque demandé
   resources:
     requests:
-      storage: 1Gi
+      storage: 1Gi # Réserve 1 Gigaoctet d'espace disque persistant

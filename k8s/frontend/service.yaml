@@ -1,11 +1,14 @@
+# Version de l'API Kubernetes
 apiVersion: v1
+# Type de ressource : Service
 kind: Service
 metadata:
+  # Nom DNS interne : frontend-service:3000
   name: frontend-service
   namespace: lab-devops
 spec:
   selector:
-    app: frontend
+    app: frontend # Redirige vers les pods Frontend
   ports:
     - protocol: TCP
       port: 3000

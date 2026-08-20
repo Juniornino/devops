@@ -1,4 +1,7 @@
+# Version de l'API Kubernetes pour les espaces de nommage
 apiVersion: v1
+# Type de ressource : Namespace (Espace de travail virtuel isolé)
 kind: Namespace
 metadata:
+  # Nom de l'espace virtuel pour isoler nos ressources
   name: lab-devops

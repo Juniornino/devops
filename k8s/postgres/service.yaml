@@ -1,13 +1,18 @@
+# Version de l'API Kubernetes
 apiVersion: v1
+# Type de ressource : Service (Load Balancer interne & Nom DNS fixe)
 kind: Service
 metadata:
+  # Nom du service (sert de nom de domaine DNS interne : db-service)
   name: db-service
   namespace: lab-devops
 spec:
+  # Redirige le trafic vers les Pods qui ont le label 'app: postgres'
   selector:
     app: postgres
   ports:
     - protocol: TCP
-      port: 5432
-      targetPort: 5432
+      port: 5432       # Port exposé par le Service
+      targetPort: 5432 # Port réel du Pod PostgreSQL
+  # Type ClusterIP : Accessible uniquement à l'intérieur du cluster K8s
   type: ClusterIP
