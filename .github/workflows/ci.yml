@@ -1,0 +1,101 @@
+name: Pipeline CI/CD Complet - E-Commerce DevOps
+
+# 1. Déclenchement du workflow à chaque push ou Pull Request sur main
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # =========================================================
+  # JOB 1 : INTÉGRATION CONTINUE (CI) - TESTS & VALIDATION
+  # =========================================================
+  ci-tests:
+    name: 🧪 Tests & Validation Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Récupération du code source
+        uses: actions/checkout@v4
+
+      - name: 🟢 Configuration de Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Installation & Tests - Backend
+        run: |
+          cd lab-devops/backend
+          npm ci || npm install
+          npm test
+
+      - name: 📦 Installation & Tests - Frontend
+        run: |
+          cd lab-devops/frontend
+          npm ci || npm install
+          npm test
+
+      - name: 🐳 Validation de la configuration Docker Compose
+        run: |
+          cd lab-devops
+          docker compose config
+
+  # =========================================================
+  # JOB 2 : BUILD DES IMAGES DOCKER (CI)
+  # =========================================================
+  ci-build-docker:
+    name: 🏗️ Build des Images Docker
+    needs: ci-tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Récupération du code
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Configuration de Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔨 Build de l'image Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./lab-devops/backend
+          file: ./lab-devops/backend/Dockerfile
+          push: false
+          tags: lab-devops-backend:latest
+
+      - name: 🔨 Build de l'image Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./lab-devops/frontend
+          file: ./lab-devops/frontend/Dockerfile
+          push: false
+          tags: lab-devops-frontend:latest
+
+  # =========================================================
+  # JOB 3 : DÉPLOIEMENT CONTINU (CD) - PRODUCTION
+  # =========================================================
+  cd-deploy:
+    name: 🚀 Déploiement Continu en Production
+    needs: ci-build-docker
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Récupération du code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Déploiement de la Stack avec Docker Compose
+        run: |
+          cd lab-devops
+          echo "🚀 Démarrage du déploiement automatisé avec Docker Compose..."
+          docker compose build
+          docker compose up -d
+          docker compose ps
+          echo "✅ Déploiement réussi ! Tous les conteneurs sont opérationnels."
+
+      - name: 📢 Notification de Succès
+        run: |
+          echo "🎉 Le pipeline CI/CD a complété avec succès le déploiement sur la branche 'main' !"
