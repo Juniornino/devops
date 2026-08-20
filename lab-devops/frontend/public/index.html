@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ghislain DevOps Store 🛒</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--text);
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .badge-devops {
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+    }
+
+    .cart-btn {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.6rem 1.2rem;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .cart-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .cart-count {
+      background: var(--accent);
+      color: #000;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    main {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #f8fafc 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .product-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .product-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
+
+    .product-image {
+      font-size: 3.5rem;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .product-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .product-desc {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      flex: 1;
+      margin-bottom: 1.2rem;
+    }
+
+    .product-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .product-price {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .add-btn {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .add-btn:hover {
+      background: var(--accent-hover);
+      color: #fff;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 3rem;
+    }
+
+    /* Modal Panier */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 90%;
+      max-width: 450px;
+      padding: 2rem;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .cart-items {
+      max-height: 250px;
+      overflow-y: auto;
+      margin-bottom: 1.5rem;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cart-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+    }
+
+    .checkout-btn {
+      width: 100%;
+      background: var(--success);
+      color: #000;
+      border: none;
+      padding: 0.8rem;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      🛒 DevShop <span>Ghislain</span>
+      <span class="badge-devops">Docker + Nginx</span>
+    </div>
+    <button class="cart-btn" onclick="toggleCart()">
+      Panier
+      <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Boutique DevOps de Ghislain</h1>
+      <p>Microservices alimentés par React, Express, PostgreSQL & Nginx Proxy</p>
+      <div class="status-bar">
+        <div class="status-item"><div class="dot"></div> Nginx (Port 80)</div>
+        <div class="status-item"><div class="dot"></div> Frontend React</div>
+        <div class="status-item"><div class="dot"></div> API NestJS/Express (/api)</div>
+        <div class="status-item"><div class="dot"></div> PostgreSQL (lab_ghislain)</div>
+      </div>
+    </section>
+
+    <div class="products-grid" id="productsGrid">
+      <p style="text-align: center; grid-column: 1/-1; color: var(--text-muted);">Chargement des produits depuis l'API...</p>
+    </div>
+  </main>
+
+  <div class="modal" id="cartModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Votre Panier</h2>
+        <button class="close-btn" onclick="toggleCart()">&times;</button>
+      </div>
+      <div class="cart-items" id="cartItems">
+        <p style="color: var(--text-muted); text-align: center;">Votre panier est vide.</p>
+      </div>
+      <div class="cart-total">
+        <span>Total :</span>
+        <span id="cartTotal">0.00 €</span>
+      </div>
+      <button class="checkout-btn" onclick="checkout()">Commander 🚀</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>Lab DevOps Ghislain — Déployé avec <code>docker compose up -d</code></p>
+  </footer>
+
+  <script>
+    let cart = [];
+
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/products');
+        const products = await res.json();
+        
+        const grid = document.getElementById('productsGrid');
+        grid.innerHTML = products.map(p => `
+          <div class="product-card">
+            <div class="product-image">${p.image || '📦'}</div>
+            <div class="product-title">${p.name}</div>
+            <div class="product-desc">${p.description || ''}</div>
+            <div class="product-footer">
+              <div class="product-price">${parseFloat(p.price).toFixed(2)} €</div>
+              <button class="add-btn" onclick="addToCart('${p.name}', ${p.price})">Ajouter</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Erreur de chargement :', err);
+      }
+    }
+
+    function addToCart(name, price) {
+      cart.push({ name, price: parseFloat(price) });
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      document.getElementById('cartCount').innerText = cart.length;
+      const itemsContainer = document.getElementById('cartItems');
+      
+      if (cart.length === 0) {
+        itemsContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Votre panier est vide.</p>';
+      } else {
+        itemsContainer.innerHTML = cart.map(item => `
+          <div class="cart-item">
+            <span>${item.name}</span>
+            <span style="font-weight:700;">${item.price.toFixed(2)} €</span>
+          </div>
+        `).join('');
+      }
+
+      const total = cart.reduce((sum, i) => sum + i.price, 0);
+      document.getElementById('cartTotal').innerText = total.toFixed(2) + ' €';
+    }
+
+    function toggleCart() {
+      document.getElementById('cartModal').classList.toggle('active');
+    }
+
+    function checkout() {
+      if (cart.length === 0) return alert('Votre panier est vide !');
+      alert('Commande validée ! Félicitations pour ce déploiement Docker réussi 🎉');
+      cart = [];
+      updateCartUI();
+      toggleCart();
+    }
+
+    loadProducts();
+  </script>
+</body>
+</html>

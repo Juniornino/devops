@@ -1,0 +1,29 @@
+# Dépendances Node.js / NPM
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Fichiers d'environnement et secrets
+.env
+.env.local
+.env.*.local
+
+# Fichiers de build et de compilation
+dist/
+build/
+.next/
+out/
+
+# Logs et sauvegardes locales
+logs/
+*.log
+backups/
+
+# Fichiers système et éditeurs
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
