@@ -13,9 +13,19 @@ variable "github_owner" {
   type        = string
 }
 
+variable "github_owner_id" {
+  description = "Identifiant GitHub immuable du proprietaire"
+  type        = number
+}
+
 variable "github_repository" {
   description = "Nom du depot GitHub"
   type        = string
+}
+
+variable "github_repository_id" {
+  description = "Identifiant GitHub immuable du depot"
+  type        = number
 }
 
 variable "github_branch" {

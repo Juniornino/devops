@@ -57,11 +57,13 @@ module "compute" {
 module "github_actions" {
   source = "../../modules/github-actions"
 
-  environment         = var.environment
-  aws_region          = var.aws_region
-  github_owner        = "Juniornino"
-  github_repository   = "devops"
-  github_branch       = "main"
-  ecr_repository_arns = [module.ecr_backend.repository_arn, module.ecr_frontend.repository_arn]
-  app_instance_ids    = module.compute.app_instance_ids
+  environment          = var.environment
+  aws_region           = var.aws_region
+  github_owner         = "Juniornino"
+  github_owner_id      = 169814850
+  github_repository    = "devops"
+  github_repository_id = 1340736659
+  github_branch        = "main"
+  ecr_repository_arns  = [module.ecr_backend.repository_arn, module.ecr_frontend.repository_arn]
+  app_instance_ids     = module.compute.app_instance_ids
 }

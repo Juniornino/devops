@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Recuperer le code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Tester le backend
         working-directory: lab-devops/backend
@@ -51,7 +51,7 @@ jobs:
           npm test
 
       - name: Obtenir des identifiants AWS temporaires
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           role-to-assume: arn:aws:iam::878947868129:role/github-actions-dev
           aws-region: ${{ env.AWS_REGION }}
