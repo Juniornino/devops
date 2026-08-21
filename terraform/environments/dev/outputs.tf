@@ -37,3 +37,18 @@ output "ecr_frontend_url" {
   description = "URL de l'ECR pour le frontend React"
   value       = module.ecr_frontend.repository_url
 }
+
+output "rds_endpoint" {
+  description = "Endpoint privé de la base RDS PostgreSQL"
+  value       = module.rds.endpoint
+}
+
+output "rds_port" {
+  description = "Port de la base RDS PostgreSQL"
+  value       = module.rds.port
+}
+
+output "github_actions_role_arn" {
+  description = "Role IAM utilise par la pipeline GitHub Actions"
+  value       = module.github_actions.role_arn
+}

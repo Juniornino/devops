@@ -17,3 +17,8 @@ output "target_group_arn" {
   description = "ARN du Target Group de l'ALB"
   value       = aws_lb_target_group.app_tg.arn
 }
+
+output "app_instance_ids" {
+  description = "IDs des instances EC2 applicatives"
+  value       = aws_instance.app_server[*].id
+}

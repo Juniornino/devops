@@ -1,0 +1,151 @@
+name: Deploy application to AWS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "lab-devops/backend/**"
+      - "lab-devops/frontend/**"
+      - "lab-devops/docker-compose.aws.yml"
+      - "lab-devops/nginx.aws.conf"
+      - ".github/workflows/deploy-aws.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-aws-dev
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-3
+  ECR_REGISTRY: 878947868129.dkr.ecr.eu-west-3.amazonaws.com
+  BACKEND_REPOSITORY: nestjs-ecommerce-backend
+  FRONTEND_REPOSITORY: nestjs-ecommerce-frontend
+  RDS_ENDPOINT: nestjs-ecommerce-dev-postgres.c9q6isoei7kf.eu-west-3.rds.amazonaws.com
+  DB_NAME: lab_ghislain
+  DB_PASSWORD_PARAMETER: /nestjs-ecommerce/dev/database/password
+  APPLICATION_URL: http://alb-dev-202768072.eu-west-3.elb.amazonaws.com
+
+jobs:
+  test-build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@v4
+
+      - name: Tester le backend
+        working-directory: lab-devops/backend
+        run: |
+          npm ci
+          npm test
+
+      - name: Tester le frontend
+        working-directory: lab-devops/frontend
+        run: |
+          npm ci
+          npm test
+
+      - name: Obtenir des identifiants AWS temporaires
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::878947868129:role/github-actions-dev
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Se connecter a ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Construire et publier les images Docker
+        run: |
+          docker build \
+            --tag "$ECR_REGISTRY/$BACKEND_REPOSITORY:$GITHUB_SHA" \
+            --tag "$ECR_REGISTRY/$BACKEND_REPOSITORY:dev" \
+            lab-devops/backend
+
+          docker build \
+            --tag "$ECR_REGISTRY/$FRONTEND_REPOSITORY:$GITHUB_SHA" \
+            --tag "$ECR_REGISTRY/$FRONTEND_REPOSITORY:dev" \
+            lab-devops/frontend
+
+          docker push "$ECR_REGISTRY/$BACKEND_REPOSITORY:$GITHUB_SHA"
+          docker push "$ECR_REGISTRY/$BACKEND_REPOSITORY:dev"
+          docker push "$ECR_REGISTRY/$FRONTEND_REPOSITORY:$GITHUB_SHA"
+          docker push "$ECR_REGISTRY/$FRONTEND_REPOSITORY:dev"
+
+      - name: Redeployer les deux EC2 avec SSM
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          compose_base64=$(base64 -w 0 lab-devops/docker-compose.aws.yml)
+          nginx_base64=$(base64 -w 0 lab-devops/nginx.aws.conf)
+
+          remote_script=$(cat <<EOF
+          set -eu
+          install -d -m 755 /opt/nestjs-ecommerce
+          printf '%s' '$compose_base64' | base64 -d > /opt/nestjs-ecommerce/docker-compose.aws.yml
+          printf '%s' '$nginx_base64' | base64 -d > /opt/nestjs-ecommerce/nginx.aws.conf
+          curl --fail --silent --show-error --location https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem --output /opt/nestjs-ecommerce/rds-global-bundle.pem
+          chmod 644 /opt/nestjs-ecommerce/rds-global-bundle.pem
+          cd /opt/nestjs-ecommerce
+          export ECR_REGISTRY='$ECR_REGISTRY'
+          export IMAGE_TAG='$GITHUB_SHA'
+          export RDS_ENDPOINT='$RDS_ENDPOINT'
+          export DB_NAME='$DB_NAME'
+          export DB_PASSWORD="\$(aws ssm get-parameter --name '$DB_PASSWORD_PARAMETER' --with-decryption --region '$AWS_REGION' --query Parameter.Value --output text)"
+          aws ecr get-login-password --region '$AWS_REGION' | docker login --username AWS --password-stdin '$ECR_REGISTRY'
+          docker compose -f docker-compose.aws.yml pull
+          docker compose -f docker-compose.aws.yml up -d
+          docker image prune -f
+          EOF
+          )
+
+          script_base64=$(printf '%s' "$remote_script" | base64 -w 0)
+          mapfile -t instance_ids < <(
+            aws ec2 describe-instances \
+              --region "$AWS_REGION" \
+              --filters \
+                "Name=tag:Role,Values=Application-Server" \
+                "Name=instance-state-name,Values=running" \
+              --query "Reservations[].Instances[].InstanceId" \
+              --output text | tr '\t' '\n'
+          )
+
+          if [ "${#instance_ids[@]}" -eq 0 ]; then
+            echo "Aucune instance applicative EC2 trouvee"
+            exit 1
+          fi
+
+          command_id=$(aws ssm send-command \
+            --region "$AWS_REGION" \
+            --document-name AWS-RunShellScript \
+            --instance-ids "${instance_ids[@]}" \
+            --parameters "commands=echo $script_base64 | base64 -d | bash" \
+            --timeout-seconds 600 \
+            --query "Command.CommandId" \
+            --output text)
+
+          for instance_id in "${instance_ids[@]}"; do
+            aws ssm wait command-executed \
+              --region "$AWS_REGION" \
+              --command-id "$command_id" \
+              --instance-id "$instance_id"
+
+            status=$(aws ssm get-command-invocation \
+              --region "$AWS_REGION" \
+              --command-id "$command_id" \
+              --instance-id "$instance_id" \
+              --query "Status" \
+              --output text)
+
+            test "$status" = "Success"
+          done
+
+      - name: Verifier l'application publique
+        run: |
+          curl --fail --retry 12 --retry-delay 10 "$APPLICATION_URL/health"
+          curl --fail "$APPLICATION_URL/api/products"

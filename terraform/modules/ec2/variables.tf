@@ -34,6 +34,11 @@ variable "app_security_group_id" {
   type        = string
 }
 
+variable "db_password_parameter_arn" {
+  description = "ARN du paramètre SSM contenant le mot de passe RDS"
+  type        = string
+}
+
 variable "instance_type" {
   description = "Type d'instance EC2 pour les serveurs applicatifs"
   type        = string

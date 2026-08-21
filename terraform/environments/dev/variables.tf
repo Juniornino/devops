@@ -21,3 +21,9 @@ variable "app_name" {
   type        = string
   default     = "nestjs-ecommerce"
 }
+
+variable "db_password" {
+  description = "Mot de passe RDS PostgreSQL fourni via TF_VAR_db_password"
+  type        = string
+  sensitive   = true
+}

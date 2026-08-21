@@ -14,6 +14,53 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+# Rôle IAM commun aux instances EC2.
+# Il autorise la lecture des images Docker dans ECR et l'administration via SSM.
+resource "aws_iam_role" "ec2" {
+  name = "role-ec2-${var.environment}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecr_read_only" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_iam_role_policy_attachment" "ssm" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# Autorise uniquement la lecture du mot de passe RDS prévu pour cette application.
+resource "aws_iam_role_policy" "read_db_password" {
+  name = "read-db-password-${var.environment}"
+  role = aws_iam_role.ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "ssm:GetParameter"
+      Resource = var.db_password_parameter_arn
+    }]
+  })
+}
+
+resource "aws_iam_instance_profile" "ec2" {
+  name = "profile-ec2-${var.environment}"
+  role = aws_iam_role.ec2.name
+}
+
 # 2. Clé SSH (Optionnelle - créée uniquement si fournie)
 resource "aws_key_pair" "deployer" {
   count      = var.ssh_public_key != "" ? 1 : 0
@@ -82,6 +129,7 @@ resource "aws_instance" "bastion" {
   vpc_security_group_ids      = [var.bastion_security_group_id]
   key_name                    = var.ssh_public_key != "" ? aws_key_pair.deployer[0].key_name : null
   associate_public_ip_address = true
+  iam_instance_profile       = aws_iam_instance_profile.ec2.name
 
   user_data = <<-EOF
               #!/bin/bash
@@ -105,12 +153,13 @@ resource "aws_instance" "app_server" {
   vpc_security_group_ids      = [var.app_security_group_id]
   key_name                    = var.ssh_public_key != "" ? aws_key_pair.deployer[0].key_name : null
   associate_public_ip_address = false
+  iam_instance_profile       = aws_iam_instance_profile.ec2.name
 
   # Script User Data d'initialisation automatique (Installation Docker & Docker Compose)
   user_data = <<-EOF
               #!/bin/bash
               sudo apt-get update -y
-              sudo apt-get install -y ca-certificates curl gnupg lsb-release git
+              sudo apt-get install -y ca-certificates curl gnupg lsb-release git awscli
               
               # Installation de Docker
               sudo mkdir -p /etc/apt/keyrings

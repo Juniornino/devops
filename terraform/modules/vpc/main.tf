@@ -155,7 +155,7 @@ resource "aws_route_table_association" "database" {
 
 ## A. Security Group du Load Balancer (ALB)
 resource "aws_security_group" "alb_sg" {
-  name        = "sg-alb-${var.environment}"
+  name        = "alb-${var.environment}"
   description = "Autorise le trafic public entrant vers le Load Balancer"
   vpc_id      = aws_vpc.main.id
 
@@ -198,8 +198,8 @@ resource "aws_security_group" "alb_sg" {
 
 ## B. Security Group du Bastion (Serveur SSH d'administration)
 resource "aws_security_group" "bastion_sg" {
-  name        = "sg-bastion-${var.environment}"
-  description = "Autorise l'accès SSH sécurisé depuis l'extérieur"
+  name        = "bastion-${var.environment}"
+  description = "Autorise l acces SSH securise depuis l exterieur"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -225,7 +225,7 @@ resource "aws_security_group" "bastion_sg" {
 
 ## C. Security Group Applicatif (Serveurs EC2 Privés / Docker / NestJS)
 resource "aws_security_group" "app_sg" {
-  name        = "sg-app-${var.environment}"
+  name        = "app-${var.environment}"
   description = "Autorise le trafic venant de ALB et du Bastion"
   vpc_id      = aws_vpc.main.id
 
@@ -262,8 +262,8 @@ resource "aws_security_group" "app_sg" {
 
 ## D. Security Group Base de Données (PostgreSQL / RDS)
 resource "aws_security_group" "db_sg" {
-  name        = "sg-database-${var.environment}"
-  description = "Autorise uniquement l'application et le Bastion a contacter PostgreSQL"
+  name        = "database-${var.environment}"
+  description = "Autorise uniquement l application et le Bastion a contacter PostgreSQL"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -275,7 +275,7 @@ resource "aws_security_group" "db_sg" {
   }
 
   ingress {
-    description     = "PostgreSQL d'administration depuis le Bastion"
+    description     = "PostgreSQL administration depuis le Bastion"
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
@@ -294,21 +294,5 @@ resource "aws_security_group" "db_sg" {
     Environment = var.environment
   }
 }
-    to_port     = 3001
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   # Egress: Trafic Sortant illimité
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    ="-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name        = "sg-web-${var.environment}"
-    Environment = var.environment
-  }
-}
